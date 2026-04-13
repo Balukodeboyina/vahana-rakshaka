@@ -1,46 +1,68 @@
-import pennylane as qml
-from pennylane import numpy as pnp
+import numpy as np
 import torch
 import torch.nn as nn
-
-# --- Quantum device: 4 qubits, runs on your CPU (no real quantum hardware needed) ---
+from qiskit import QuantumCircuit
+from qiskit.circuit import ParameterVector
+from qiskit_machine_learning.neural_networks import EstimatorQNN
+from qiskit_machine_learning.connectors import TorchConnector
+from qiskit.primitives import StatevectorEstimator as Estimator
+from qiskit.quantum_info import SparsePauliOp
 n_qubits = 4
-n_layers = 3
-dev = qml.device("default.qubit", wires=n_qubits)
+n_layers = 2  
 
-@qml.qnode(dev, interface="torch")
-def quantum_circuit(inputs, weights):
-    # Step 1: Encode the 4 features as rotation angles on each qubit
-    qml.AngleEmbedding(inputs, wires=range(n_qubits), rotation="X")
-    # Step 2: Trainable entangling layers — this is where quantum advantage lives
-    qml.StronglyEntanglingLayers(weights, wires=range(n_qubits))
-    # Step 3: Measure expectation value of Pauli-Z on qubit 0 → gives a value in [-1, 1]
-    return qml.expval(qml.PauliZ(0))
+def build_qnn_circuit():
+    inputs  = ParameterVector("x", n_qubits)
+    weights = ParameterVector("w", n_layers * n_qubits * 3)
 
-# Convert the quantum circuit into a PyTorch-trainable layer
-weight_shapes = {"weights": (n_layers, n_qubits, 3)}
+    qc = QuantumCircuit(n_qubits)
+    for i in range(n_qubits):
+        qc.rx(inputs[i], i)
+    w_idx = 0
+    for layer in range(n_layers):
+        for qubit in range(n_qubits):
+            qc.rz(weights[w_idx],     qubit)
+            qc.ry(weights[w_idx + 1], qubit)
+            qc.rz(weights[w_idx + 2], qubit)
+            w_idx += 3
+        for qubit in range(n_qubits):
+            qc.cx(qubit, (qubit + 1) % n_qubits)
 
-class HybridQNN(nn.Module):
-    """
-    Architecture:
-      Classical pre-layer (4 → 4) 
-      → Quantum VQC layer (4 qubits, 3 entangling layers)
-      → Classical post-layer (1 → 1)
-      → Sigmoid (output: probability of attack)
-    """
-    def __init__(self):
-        super().__init__()
-        self.pre = nn.Linear(4, 4)
-        self.qlayer = qml.qnn.TorchLayer(quantum_circuit, weight_shapes)
-        self.post = nn.Linear(1, 1)
-        self.sigmoid = nn.Sigmoid()
+    return qc, inputs, weights
 
-    def forward(self, x):
-        x = torch.tanh(self.pre(x))       # pre-process features
-        x = self.qlayer(x)                 # quantum layer — shape: (batch,)
-        x = x.unsqueeze(1)                 # shape: (batch, 1)
-        x = self.sigmoid(self.post(x))     # final probability
-        return x.squeeze(1)
 
 def get_model():
+    qc, inputs, weights = build_qnn_circuit()
+
+    observable = SparsePauliOp("IIIZ")
+    estimator  = Estimator()
+
+    qnn = EstimatorQNN(
+        circuit=qc,
+        estimator=estimator,
+        observables=observable,
+        input_params=inputs.params,
+        weight_params=weights.params,
+    )
+
+    qnn_layer = TorchConnector(qnn)
+
+    class HybridQNN(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.pre     = nn.Linear(4, 4)
+            self.qlayer  = qnn_layer
+            self.post    = nn.Linear(1, 1)
+            self.sigmoid = nn.Sigmoid()
+
+        def forward(self, x):
+            x = torch.tanh(self.pre(x))
+            x = self.qlayer(x)
+            x = self.sigmoid(self.post(x))
+            return x.squeeze(1)
+
     return HybridQNN()
+
+
+def get_circuit_diagram():
+    qc, _, _ = build_qnn_circuit()
+    return qc

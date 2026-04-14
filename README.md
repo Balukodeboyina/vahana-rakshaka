@@ -1,4 +1,3 @@
-[README_1.md](https://github.com/user-attachments/files/26696964/README_1.md)
 # 🛡️ Vahana Rakshaka — QML-IDS
 
 ### Hybrid Quantum Machine Learning Intrusion Detection System for Autonomous Vehicle CAN Bus Security

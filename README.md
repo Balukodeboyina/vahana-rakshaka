@@ -7,7 +7,6 @@
 ![Qiskit](https://img.shields.io/badge/Qiskit-1.0+-6929C4.svg)
 ![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-red.svg)
 ![Streamlit](https://img.shields.io/badge/Streamlit-1.0+-orange.svg)
-![License](https://img.shields.io/badge/License-MIT-yellow.svg)
 
 ---
 

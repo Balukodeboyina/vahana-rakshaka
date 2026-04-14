@@ -357,5 +357,4 @@ then expand globally through Tier-1 automotive suppliers like Bosch, Continental
 
 ---
 
-*Built with ❤️ for the future of safe autonomous transportation.*
 *India's first Qiskit-powered automotive Intrusion Detection System.*

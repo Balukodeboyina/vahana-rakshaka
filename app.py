@@ -40,13 +40,14 @@ except Exception as e:
     )
     st.stop()
 
-# ✅ Callback function (FIX)
+# ✅ Callback
 def load_attack_sample():
     st.session_state["can_id"]  = 2.8
     st.session_state["time_d"]  = 0.1
     st.session_state["dlc"]     = 3.0
     st.session_state["entropy"] = 2.9
 
+# ---------------- HEADER ----------------
 st.markdown("""
 <div style='background:linear-gradient(135deg,#1a1a2e,#16213e);
      padding:2rem;border-radius:12px;margin-bottom:1.5rem;'>
@@ -92,96 +93,98 @@ with tab1:
             correct    = (pred == true_label)
 
             history.append({
-                "Frame #":       i + 1,
-                "CAN ID (norm)": f"{X_test[i][0]:.3f}",
-                "Time Δ":        f"{X_test[i][1]:.3f}",
-                "DLC":           f"{X_test[i][2]:.3f}",
-                "Entropy":       f"{X_test[i][3]:.3f}",
-                "Confidence":    f"{prob:.2%}",
-                "Verdict":       "🔴 ATTACK" if pred else "🟢 NORMAL",
-                "Correct":       "✓" if correct else "✗"
+                "Frame #": i + 1,
+                "Confidence": f"{prob:.2%}",
+                "Verdict": "🔴 ATTACK" if pred else "🟢 NORMAL",
+                "Correct": "✓" if correct else "✗"
             })
 
-            df = pd.DataFrame(history)
-            feed_container.dataframe(df, use_container_width=True, height=300)
+            feed_container.dataframe(pd.DataFrame(history), use_container_width=True, height=300)
 
-            total_frames.metric("Frames Processed", i + 1)
-            attacks_found.metric("Attacks Detected", attack_count)
-            detection_rate.metric("Detection Rate", f"{attack_count / (i + 1):.1%}")
+            total_frames.metric("Frames", i + 1)
+            attacks_found.metric("Attacks", attack_count)
+            detection_rate.metric("Rate", f"{attack_count/(i+1):.1%}")
 
             if pred:
-                alert_box.error(
-                    f"⚠️ INTRUSION DETECTED — Frame {i+1} | Confidence: {prob:.2%}"
-                )
+                alert_box.error(f"⚠️ ATTACK — Frame {i+1}")
             else:
-                alert_box.success(f"✅ Frame {i+1} — Normal CAN traffic")
+                alert_box.success(f"✅ Normal Frame {i+1}")
 
             time.sleep(0.15)
+
+# ---------------- TAB 2 (FIXED) ----------------
+with tab2:
+    st.subheader("QML-IDS vs Classical Models")
+
+    try:
+        model_names = list(benchmark.keys())
+        metrics = ["accuracy", "f1", "false_neg_rate"]
+
+        for metric in metrics:
+            vals = [benchmark[m][metric] for m in model_names]
+
+            fig = go.Figure(go.Bar(
+                x=model_names,
+                y=vals,
+                text=[f"{v:.3f}" for v in vals],
+                textposition="outside"
+            ))
+
+            fig.update_layout(title=metric.upper(), height=300)
+            st.plotly_chart(fig, use_container_width=True)
+
+    except Exception as e:
+        st.error(f"Error loading model comparison: {e}")
+
+# ---------------- TAB 3 (FIXED) ----------------
+with tab3:
+    st.subheader("Quantum Circuit (Qiskit)")
+
+    try:
+        qc = get_circuit_diagram()
+        fig = qc.draw(output="mpl")
+        st.pyplot(fig)
+
+    except Exception as e:
+        st.error(f"Circuit rendering failed: {e}")
 
 # ---------------- TAB 4 ----------------
 with tab4:
     st.subheader("Inject a Custom CAN Frame")
-    st.markdown("Simulate what a hacker might send — or test a normal frame.")
 
-    # ✅ Initialize state
-    if "can_id"  not in st.session_state: st.session_state["can_id"]  = 1.5
-    if "time_d"  not in st.session_state: st.session_state["time_d"]  = 0.3
-    if "dlc"     not in st.session_state: st.session_state["dlc"]     = 1.5
+    if "can_id" not in st.session_state: st.session_state["can_id"] = 1.5
+    if "time_d" not in st.session_state: st.session_state["time_d"] = 0.3
+    if "dlc" not in st.session_state: st.session_state["dlc"] = 1.5
     if "entropy" not in st.session_state: st.session_state["entropy"] = 2.0
 
     c1, c2 = st.columns(2)
 
     with c1:
-        can_id = st.slider("CAN ID (normalized 0–π)", 0.0, 3.14, key="can_id", step=0.01)
-        time_d = st.slider("Time delta (ms, normalized)", 0.0, 3.14, key="time_d", step=0.01)
+        can_id = st.slider("CAN ID", 0.0, 3.14, key="can_id")
+        time_d = st.slider("Time delta", 0.0, 3.14, key="time_d")
 
     with c2:
-        dlc     = st.slider("DLC value (normalized)", 0.0, 3.14, key="dlc", step=0.01)
-        entropy = st.slider("Data entropy (normalized)", 0.0, 3.14, key="entropy", step=0.01)
+        dlc = st.slider("DLC", 0.0, 3.14, key="dlc")
+        entropy = st.slider("Entropy", 0.0, 3.14, key="entropy")
 
-    # ✅ Demo improvement (NEW)
     st.caption(f"""
-    **Current Input →**
-    CAN_ID: {st.session_state['can_id']:.2f} | 
-    TimeΔ: {st.session_state['time_d']:.2f} | 
-    DLC: {st.session_state['dlc']:.2f} | 
+    CAN_ID: {st.session_state['can_id']:.2f} |
+    TimeΔ: {st.session_state['time_d']:.2f} |
+    DLC: {st.session_state['dlc']:.2f} |
     Entropy: {st.session_state['entropy']:.2f}
     """)
 
-    col_btn1, col_btn2 = st.columns(2)
+    col1, col2 = st.columns(2)
 
-    with col_btn1:
-        if st.button("🔍 Classify this frame"):
+    with col1:
+        if st.button("🔍 Classify"):
             x = torch.tensor([[can_id, time_d, dlc, entropy]], dtype=torch.float32)
-            with torch.no_grad():
-                prob = model(x).item()
+            prob = model(x).item()
 
             if prob > 0.5:
-                st.error(f"⚠️ ATTACK DETECTED — Confidence: {prob:.2%}")
+                st.error(f"ATTACK {prob:.2%}")
             else:
-                st.success(f"✅ NORMAL TRAFFIC — Confidence: {(1 - prob):.2%}")
+                st.success(f"NORMAL {(1-prob):.2%}")
 
-            fig = go.Figure(go.Indicator(
-                mode="gauge+number",
-                value=prob * 100,
-                title={"text": "Attack Probability (%)"},
-                gauge={
-                    "axis": {"range": [0, 100]},
-                    "bar": {"color": "#E24B4A"},
-                    "steps": [
-                        {"range": [0, 50], "color": "#EAF3DE"},
-                        {"range": [50, 100], "color": "#FCEBEB"}
-                    ],
-                    "threshold": {
-                        "line": {"color": "red", "width": 4},
-                        "thickness": 0.75,
-                        "value": 50
-                    }
-                }
-            ))
-            fig.update_layout(height=250, paper_bgcolor="rgba(0,0,0,0)")
-            st.plotly_chart(fig, use_container_width=True)
-
-    with col_btn2:
-        # ✅ FIXED BUTTON
+    with col2:
         st.button("🎲 Load Attack Sample", on_click=load_attack_sample)

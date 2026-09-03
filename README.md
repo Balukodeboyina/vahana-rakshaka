@@ -339,8 +339,8 @@ then expand globally through Tier-1 automotive suppliers like Bosch, Continental
 
 | Name | Role | Responsibilities |
 |---|---|---|
-| **Vishnu Vardhan Malempati** | Founder / CEO — Quantum ML Engineer & Frontend Developer | Hybrid QNN architecture, model training & optimization, feature extraction from CAN bus data, GitHub & deployment |
-| **Kodeboyina Bala Anjaneya Siva Kumar** | Co-Founder / COO — Quantum ML Engineer & Backend Developer | VQC design, Qiskit circuit implementation, data preprocessing pipeline, Streamlit dashboard |
+| **Vishnu Vardhan Malempati** | Founder / CEO — Quantum ML Engineer & Frontend Developer | Hybrid QNN architecture, model training & optimization, feature extraction from CAN bus data|
+| **Kodeboyina Bala Anjaneya Siva Kumar** | Co-Founder / COO — Quantum ML Engineer & Backend Developer | VQC design, Qiskit circuit implementation, data preprocessing pipeline, Streamlit dashboard,  GitHub & deployment|
 | **Moturi Sai Madhuri** | CTO — Machine Learning Engineer | Classical baseline models, benchmark analysis, model evaluation pipeline |
 | **Sunkara Satya Vasu** | CPO — Marketing & Growth Manager | Business model, market research, product strategy, investor pitch |
 | **Mohammad Farida Begum** | CDO — DevOps Engineer | Data pipeline infrastructure, GitHub CI/CD, deployment, dataset management |
